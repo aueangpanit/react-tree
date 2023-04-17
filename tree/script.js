@@ -1,6 +1,6 @@
 var margin = { top: 20, right: 90, bottom: 30, left: 90 },
-  width = window.innerWidth - margin.left - margin.right,
-  height = window.innerHeight - margin.top - margin.bottom
+  width = (window.innerWidth * 2) - margin.left - margin.right,
+  height = (window.innerHeight ) - margin.top - margin.bottom
 var svg = d3
   .select('body')
   .append('svg')

@@ -9,9 +9,11 @@ import { Tree } from './types/Tree'
 export class SaplingParser {
   entryFile: string
   tree: Tree | undefined
+  baseDir: string
 
-  constructor(filePath: string) {
+  constructor(filePath: string, baseDir: string) {
     // Fix when selecting files in wsl file system
+    this.baseDir = baseDir
     this.entryFile = filePath
     if (process.platform === 'linux' && this.entryFile.includes('wsl$')) {
       this.entryFile = path.resolve(
@@ -337,10 +339,10 @@ export class SaplingParser {
         id: getNonce(),
         name: imports[astToken.value]['importName'],
         fileName: path.basename(imports[astToken.value]['importPath']),
-        filePath: path.resolve(
+        filePath: imports[astToken.value]['importPath'][0] === '.' ? path.resolve(
           path.dirname(parent.filePath),
           imports[astToken.value]['importPath']
-        ),
+        ) : this.baseDir + '/' + imports[astToken.value]['importPath'],
         importPath: imports[astToken.value]['importPath'],
         expanded: false,
         depth: parent.depth + 1,
@@ -362,9 +364,28 @@ export class SaplingParser {
   }
 
   private getFilePath(node: Tree) {
-    if (!node.filePath.includes(node.name)) {
-      const fileName = node.name + '.tsx'
-      const filePath = node.filePath + '/' + fileName
+    if (!fs.existsSync(node.filePath) || (fs.existsSync(node.filePath) && fs.lstatSync(node.filePath).isDirectory())) {
+      // try adding extension
+      let fileName = node.name + '.tsx'
+      let filePath = node.filePath
+      let items = filePath.split('/')
+      items.pop()
+      filePath = items.join('/') + '/' + fileName
+      if (fs.existsSync(filePath)) {
+        return { filePath, fileName }
+      }
+
+      // try index file style
+      fileName = 'index.tsx'
+      filePath = node.filePath + '/' + fileName
+      if (fs.existsSync(filePath)) {
+        return { filePath, fileName }
+      }
+
+      // try index module style export
+
+      fileName = node.name + '.tsx'
+      filePath = node.filePath + '/' + fileName
       if (fs.existsSync(filePath)) {
         return { filePath, fileName }
       }
